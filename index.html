@@ -1,1 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Informe Pericial - Manuel Pedro Martín Suazo</title>
+    <!-- Manifest para comportamiento de App en iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Peritaje Vial">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #3b82f6;
+        }
+        body {
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            padding: 24px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: white;
+        }
+        .btn-action {
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-action:active { transform: scale(0.98); opacity: 0.9; }
+        
+        .grid-canvas {
+            background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 2px solid #9ca3af;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .vehicle-part {
+            fill: #f3f4f6;
+            stroke: #4b5563;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+        .vehicle-part.active { fill: #ef4444; stroke: #b91c1c; }
+        
+        .camera-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4b5563;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            gap: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .hidden-input { display: none; }
+        .preview-container { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .logo-container img { max-height: 120px; width: auto; }
+        .calc-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .online { background: #dcfce7; color: #166534; }
+        .offline { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
 
+    <!-- Indicador de Estado -->
+    <div class="fixed top-4 right-4 z-50">
+        <span id="connection-status" class="status-badge online shadow-sm">
+            <i class="fas fa-circle mr-1 text-[8px]"></i> ONLINE
+        </span>
+    </div>
+
+    <!-- Encabezamiento -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-lg border-b-4 border-blue-900">
+        <div class="logo-container mb-4 md:mb-0">
+            <img src="sello-aspejure-03478.png" alt="Logo ASPEJURE Perito 03478" onerror="this.src='https://via.placeholder.com/150x150?text=ASPEJURE+03478'">
+        </div>
+        <div class="text-center md:text-right">
+            <h1 class="text-2xl font-bold text-blue-900 uppercase tracking-tight">Informe Pericial de Siniestro Vial</h1>
+            <p class="text-gray-700 font-bold">Manuel Pedro Martín Suazo</p>
+            <p class="text-blue-700">Perito Judicial nº 03478</p>
+            <div class="text-sm text-gray-500 mt-2">
+                <p><i class="fas fa-envelope mr-1"></i> 03478@peritojudicial.pro</p>
+                <p><i class="fas fa-phone mr-1"></i> +34 689 58 63 40</p>
+            </div>
+        </div>
+    </header>
+
+    <form id="pericialForm">
+        <!-- 1. Ubicación -->
+        <section class="card">
+            <h2 class="text-xl font-bold text-blue-900 mb-4 border-b pb-2">1. Ubicación y Datos del Siniestro</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="input-group">
+                    <label>Referencia / Diligencias Judiciales</label>
+                    <input type="text" id="ref_judicial" class="input-field" placeholder="Nº de expediente">
+                </div>
+                <div class="input-group">
+                    <label>Fecha y Hora Inspección</label>
+                    <input type="datetime-local" id="fecha_siniestro" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label>Localización (GPS)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="gps-coords" class="input-field bg-gray-50" readonly placeholder="Toca el botón para capturar">
+                        <button type="button" id="btn-gps" onclick="getLocation()" class="btn-action bg-green-600 px-4"><i class="fas fa-location-dot"></i></button>
+                    </div>
+                    <p id="gps-error" class="text-red-500 text-[10px] mt-1 hidden"></p>
+                </div>
+                <div class="input-group">
+                    <label>Fotos del Lugar</label>
+                    <label class="camera-btn bg-blue-700">
+                        <i class="fas fa-camera"></i> Capturar Foto
+                        <input type="file" accept="image/*" capture="camera" class="hidden-input" onchange="handleImageUpload(this, 'fotos_lugar')">
+                    </label>
+                    <div id="preview_fotos_lugar" class="preview-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Personas -->
+        <section class="card">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-xl font-bold text-blue-900">2. Personas Involucradas</h2>
+                <button type="button" onclick="addPerson()" class="btn-action bg-blue-600 text-sm py-2">
+                    <i class="fas fa-plus"></i> Añadir
+                </button>
+            </div>
+            <div id="persons-container" class="space-y-4"></div>
+        </section>
+
+        <!-- 3. Vía -->
+        <section class="card">
+            <h2 class="text-xl font-bold text-blue-900 mb-4 border-b pb-2">3. Características e Inspección de la Vía</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="input-group">
+                    <label>Tipo de Vía</label>
+                    <select id="tipo_via" class="input-field">
+                        <option>Urbana</option><option>Interurbana</option><option>Travesía</option><option>Autovía/Autopista</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Trazado</label>
+                    <select id="trazado" class="input-field">
+                        <option>Rectilíneo</option><option>Curva suave Derecha</option><option>Curva suave Izquierda</option>
+                        <option>Curva cerrada</option><option>Cruce en T</option><option>Cruce en X</option><option>Glorieta</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tipo de Superficie</label>
+                    <select id="superficie" class="input-field" onchange="updateCoeficiente()">
+                        <option value="0.80">Asfalto - Nuevo/Seco (μ: 0.80)</option>
+                        <option value="0.70">Asfalto - Desgastado (μ: 0.70)</option>
+                        <option value="0.50">Asfalto - Mojado (μ: 0.50)</option>
+                        <option value="0.40">Gravilla (μ: 0.40)</option>
+                        <option value="0.20">Hielo (μ: 0.20)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Ancho Calzada (m)</label>
+                    <input type="number" id="ancho_calzada" step="0.1" class="input-field" placeholder="0.0">
+                </div>
+                <div class="input-group">
+                    <label>Nº Carriles</label>
+                    <input type="text" id="num_carriles" class="input-field" placeholder="Ej: 2 carriles">
+                </div>
+                <div class="input-group">
+                    <label>Coeficiente Rozamiento (μ)</label>
+                    <input type="number" id="coeficiente" step="0.01" class="input-field bg-blue-50 font-bold" readonly>
+                </div>
+                
+                <div class="input-group">
+                    <label>Pendiente / Desnivel (%)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="pendiente_valor" step="0.1" class="input-field" placeholder="%" oninput="calculateSpeed()">
+                        <select id="pendiente_tipo" class="input-field w-24 text-xs" onchange="calculateSpeed()">
+                            <option value="ascendente">Subida</option>
+                            <option value="descendente">Bajada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Señalización</label>
+                    <select id="señal_tipo" class="input-field">
+                        <option value="">Seleccionar tipo...</option>
+                        <option value="vertical">Vertical</option>
+                        <option value="horizontal">Horizontal</option>
+                        <option value="semaforica">Semafórica</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Cálculo de Velocidad -->
+            <div class="mt-6 border-t pt-4">
+                <h3 class="font-bold text-sm text-gray-700 mb-3">Estimación de Velocidad</h3>
+                <div class="calc-box grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div class="input-group">
+                        <label class="text-xs">Longitud Huella (m)</label>
+                        <input type="number" id="huella_longitud" step="0.1" class="input-field" oninput="calculateSpeed()">
+                    </div>
+                    <div class="input-group">
+                        <label class="text-xs text-blue-800">Resultado (km/h)</label>
+                        <input type="text" id="velocidad_resultado" class="input-field bg-white font-bold text-blue-900 border-blue-300 text-center" readonly>
+                    </div>
+                    <div class="text-[10px] text-gray-500 italic">
+                        v = √(2 · g · d · (μ ± i)) · 3.6
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Vehículos -->
+        <section class="card">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-xl font-bold text-blue-900">4. Vehículos</h2>
+                <button type="button" onclick="addVehicle()" class="btn-action bg-blue-600 text-sm py-2">
+                    <i class="fas fa-plus"></i> Añadir Vehículo
+                </button>
+            </div>
+            <div id="vehicles-container" class="space-y-8"></div>
+        </section>
+
+        <!-- 5. Croquis -->
+        <section class="card">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-xl font-bold text-blue-900">5. Croquis</h2>
+                <button type="button" onclick="clearCanvas()" class="btn-action bg-red-500 text-xs py-1 px-3">Limpiar</button>
+            </div>
+            <canvas id="croquis" class="grid-canvas w-full h-80 rounded-lg bg-white"></canvas>
+        </section>
+
+        <!-- Botonera de Acción -->
+        <div class="flex flex-col md:flex-row gap-4 mb-20">
+            <button type="button" onclick="saveToLocal()" class="btn-action bg-green-700 flex-1">
+                <i class="fas fa-save"></i> GUARDAR BORRADOR LOCAL (OFFLINE)
+            </button>
+            <button type="submit" class="btn-action bg-blue-900 flex-1 shadow-xl">
+                <i class="fas fa-check-double"></i> FINALIZAR Y GENERAR PDF
+            </button>
+        </div>
+    </form>
+
+    <!-- Sección de Borradores Guardados -->
+    <section class="card bg-gray-100 border-2 border-dashed border-gray-400">
+        <h2 class="font-bold text-gray-700 mb-4"><i class="fas fa-folder-open mr-2"></i>Borradores en este iPad/Móvil</h2>
+        <div id="local-reports-list" class="space-y-2">
+            <p class="text-gray-500 text-sm italic">No hay borradores guardados localmente.</p>
+        </div>
+    </section>
+
+    <script>
+        // --- BASE DE DATOS LOCAL (IndexedDB) ---
+        let db;
+        const request = indexedDB.open("PeritajesDB", 1);
+        request.onupgradeneeded = e => {
+            db = e.target.result;
+            db.createObjectStore("informes", { keyPath: "id", autoIncrement: true });
+        };
+        request.onsuccess = e => { db = e.target.result; loadLocalReportsList(); };
+
+        // --- GESTIÓN DE ESTADO ONLINE/OFFLINE ---
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        function updateStatus() {
+            const el = document.getElementById('connection-status');
+            if(navigator.onLine) {
+                el.innerHTML = '<i class="fas fa-circle mr-1 text-[8px]"></i> ONLINE';
+                el.className = 'status-badge online shadow-sm';
+            } else {
+                el.innerHTML = '<i class="fas fa-ghost mr-1"></i> MODO OFFLINE';
+                el.className = 'status-badge offline shadow-sm';
+            }
+        }
+
+        // --- GEOLOCALIZACIÓN CORREGIDA ---
+        function getLocation() {
+            const btn = document.getElementById('btn-gps');
+            const output = document.getElementById('gps-coords');
+            const errorEl = document.getElementById('gps-error');
+            
+            errorEl.classList.add('hidden');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            if (!navigator.geolocation) {
+                showGPSError("Tu navegador no soporta geolocalización.");
+                return;
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    output.value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                    btn.classList.replace('bg-green-600', 'bg-blue-600');
+                },
+                err => {
+                    let msg = "Error desconocido.";
+                    if(err.code === 1) msg = "Permiso denegado. Activa el GPS en ajustes del iPad.";
+                    if(err.code === 2) msg = "Posición no disponible.";
+                    if(err.code === 3) msg = "Tiempo de espera agotado.";
+                    showGPSError(msg);
+                },
+                options
+            );
+        }
+
+        function showGPSError(msg) {
+            const btn = document.getElementById('btn-gps');
+            const errorEl = document.getElementById('gps-error');
+            errorEl.textContent = msg;
+            errorEl.classList.remove('hidden');
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        }
+
+        // --- LÓGICA DE VEHÍCULOS ---
+        const SVGS = {
+            turismo: `<svg viewBox="0 0 200 400" class="w-full h-full"><path class="vehicle-part" d="M40,60 Q100,30 160,60 L160,100 L40,100 Z" onclick="toggleDamage(this)" /><path class="vehicle-part" d="M45,100 L155,100 L150,160 L50,160 Z" onclick="toggleDamage(this)" /><rect class="vehicle-part" x="50" y="160" width="100" height="120" rx="10" onclick="toggleDamage(this)" /><path class="vehicle-part" d="M40,280 L160,280 L165,340 Q100,360 35,340 Z" onclick="toggleDamage(this)" /></svg>`,
+            moto: `<svg viewBox="0 0 200 400" class="w-full h-full"><ellipse class="vehicle-part" cx="100" cy="80" rx="15" ry="40" onclick="toggleDamage(this)" /><path class="vehicle-part" d="M70,140 Q100,100 130,140 L135,220 Q100,240 65,220 Z" onclick="toggleDamage(this)" /><ellipse class="vehicle-part" cx="100" cy="330" rx="18" ry="45" onclick="toggleDamage(this)" /></svg>`
+        };
+
+        let vehicleCount = 0;
+        function addVehicle() {
+            vehicleCount++;
+            const html = `
+                <div class="p-6 bg-gray-50 rounded-xl border-l-8 border-blue-900 relative shadow-md vehicle-entry">
+                    <h3 class="text-lg font-bold text-blue-900 mb-4">Vehículo ${String.fromCharCode(64 + vehicleCount)}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <input type="text" placeholder="Matrícula" class="input-field v-mat">
+                        <input type="text" placeholder="Marca/Modelo" class="input-field v-mod">
+                    </div>
+                    <div id="svg-container-${vehicleCount}" class="w-32 h-48 mx-auto bg-white border rounded p-2">
+                        ${SVGS.turismo}
+                    </div>
+                </div>`;
+            document.getElementById('vehicles-container').insertAdjacentHTML('beforeend', html);
+        }
+
+        function toggleDamage(el) { el.classList.toggle('active'); }
+
+        // --- CÁLCULOS ---
+        function updateCoeficiente() {
+            document.getElementById('coeficiente').value = document.getElementById('superficie').value;
+            calculateSpeed();
+        }
+
+        function calculateSpeed() {
+            const mu = parseFloat(document.getElementById('coeficiente').value) || 0;
+            const d = parseFloat(document.getElementById('huella_longitud').value) || 0;
+            const pVal = parseFloat(document.getElementById('pendiente_valor').value) || 0;
+            const pTipo = document.getElementById('pendiente_tipo').value;
+            const resField = document.getElementById('velocidad_resultado');
+            
+            if (mu > 0 && d > 0) {
+                let i = pVal / 100;
+                let factor = (pTipo === 'ascendente') ? (mu + i) : (mu - i);
+                if (factor <= 0) factor = 0.01;
+                const speedKMH = Math.sqrt(2 * 9.81 * d * factor) * 3.6;
+                resField.value = speedKMH.toFixed(1) + " km/h";
+            } else {
+                resField.value = "";
+            }
+        }
+
+        // --- CROQUIS ---
+        const canvas = document.getElementById('croquis');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        function resizeCanvas() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+        canvas.addEventListener('mousedown', () => isDrawing = true);
+        window.addEventListener('mouseup', () => { isDrawing = false; ctx.beginPath(); });
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; draw(e); });
+        canvas.addEventListener('touchend', () => { isDrawing = false; ctx.beginPath(); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+            ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e3a8a';
+            ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
+        }
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        // --- PERSISTENCIA LOCAL ---
+        function saveToLocal() {
+            const data = {
+                id: Date.now(),
+                referencia: document.getElementById('ref_judicial').value || "Sin título",
+                fecha: new Date().toLocaleString(),
+                form: {
+                    gps: document.getElementById('gps-coords').value,
+                    huella: document.getElementById('huella_longitud').value,
+                    velocidad: document.getElementById('velocidad_resultado').value
+                },
+                canvas: canvas.toDataURL()
+            };
+
+            const tx = db.transaction("informes", "readwrite");
+            tx.objectStore("informes").add(data);
+            tx.oncomplete = () => {
+                alert("Borrador guardado con éxito en este dispositivo.");
+                loadLocalReportsList();
+            };
+        }
+
+        function loadLocalReportsList() {
+            const list = document.getElementById('local-reports-list');
+            list.innerHTML = "";
+            const tx = db.transaction("informes", "readonly");
+            tx.objectStore("informes").openCursor().onsuccess = e => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const item = cursor.value;
+                    list.insertAdjacentHTML('beforeend', `
+                        <div class="flex justify-between items-center p-3 bg-white rounded shadow-sm border">
+                            <div>
+                                <div class="font-bold">${item.referencia}</div>
+                                <div class="text-[10px] text-gray-400">${item.fecha}</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="deleteReport(${item.id})" class="text-red-500 text-sm"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `);
+                    cursor.continue();
+                }
+            };
+        }
+
+        function deleteReport(id) {
+            const tx = db.transaction("informes", "readwrite");
+            tx.objectStore("informes").delete(id);
+            tx.oncomplete = loadLocalReportsList;
+        }
+
+        function addPerson() {
+            document.getElementById('persons-container').insertAdjacentHTML('beforeend', `
+                <div class="flex gap-2 p-3 bg-blue-50 border rounded-lg">
+                    <input type="text" placeholder="Nombre" class="input-field flex-1">
+                    <button type="button" onclick="this.parentElement.remove()" class="text-red-500 px-2"><i class="fas fa-times"></i></button>
+                </div>
+            `);
+        }
+
+        function handleImageUpload(input, targetId) {
+            const container = document.getElementById('preview_' + targetId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    container.insertAdjacentHTML('beforeend', `<div class="w-16 h-16 border rounded overflow-hidden shadow"><img src="${e.target.result}" class="w-full h-full object-cover"></div>`);
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        window.onload = () => {
+            resizeCanvas();
+            updateStatus();
+            updateCoeficiente();
+            if(vehicleCount === 0) addVehicle();
+        };
+    </script>
+</body>
+</html>
