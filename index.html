@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dictamen Pericial Vial - Manuel Pedro Martín Suazo</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'peritaje-vial-pro';
+
+        let user = null;
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) { 
+                console.error("Auth Error:", err);
+                showStatus("Error de conexión", "red");
+            }
+        }
+
+        onAuthStateChanged(auth, (u) => { 
+            user = u; 
+            if(u) {
+                showStatus("Conectado a Firebase", "green");
+            }
+        });
+        
+        initAuth();
+
+        function showStatus(msg, color) {
+            const statusEl = document.getElementById('db-status');
+            if (statusEl) {
+                statusEl.innerText = msg;
+                statusEl.className = `text-[10px] font-bold px-2 py-1 rounded bg-${color}-100 text-${color}-700 border border-${color}-200`;
+            }
+        }
+
+        window.saveToFirestore = async function() {
+            if (!user) {
+                alert("Error: No hay sesión activa.");
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Guardando...';
+
+            try {
+                const reportData = {
+                    metadata: {
+                        referencia: document.getElementById('ref_judicial').value,
+                        fecha: document.getElementById('fecha_siniestro').value,
+                        hora: document.getElementById('hora_siniestro').value,
+                        lugar: document.getElementById('lugar_siniestro').value,
+                        coordenadas: document.getElementById('gps_coords').value,
+                        autoridad: document.getElementById('autoridad').value,
+                        perito: "Manuel Pedro Martín Suazo",
+                        uid: user.uid
+                    },
+                    entorno: {
+                        fase_dia: document.getElementById('fase_dia').value,
+                        alumbrado: document.getElementById('alumbrado').value,
+                        obstaculos: document.getElementById('obstaculos').value
+                    },
+                    via: {
+                        tipo: document.getElementById('tipo_via').value,
+                        firme: document.getElementById('tipo_firme').value,
+                        estado: document.getElementById('estado_firme').value,
+                        anchura: document.getElementById('anchura_via').value,
+                        carriles: document.getElementById('num_carriles').value,
+                        peralte: document.getElementById('peralte').value,
+                        clima: document.getElementById('clima').value
+                    },
+                    senalizacion: {
+                        tipo_dgt: document.getElementById('cat_dgt').value,
+                        codigo_especifico: document.getElementById('cod_dgt').value,
+                        horizontal: document.getElementById('sen_horizontal').value,
+                        visibilidad: document.getElementById('visibilidad_sen').value,
+                        conservacion: document.getElementById('conservacion_sen').value,
+                        semaforos: document.getElementById('semaforos').checked
+                    },
+                    fisica: {
+                        mu: document.getElementById('mu_calc').value,
+                        long_huella: document.getElementById('long_huella').value,
+                        pendiente_pct: document.getElementById('pendiente').value,
+                        radio_curva: document.getElementById('radio_curva').value,
+                        ees_deformacion: document.getElementById('ees_deformacion').value,
+                        velocidad_resultado: document.getElementById('velocidad_box').innerText
+                    },
+                    involucrados: Array.from(document.querySelectorAll('.persona-entry')).map(el => ({
+                        nombre: el.querySelector('.p-nombre').value,
+                        dni: el.querySelector('.p-dni').value,
+                        calidad: el.querySelector('.p-rol').value
+                    })),
+                    vehiculos: Array.from(document.querySelectorAll('.vehiculo-entry')).map(el => ({
+                        matricula: el.querySelector('.v-matricula').value,
+                        neumaticos: {
+                            dot: el.querySelector('.v-n-dot').value,
+                            dibujo: el.querySelector('.v-n-dibujo').value
+                        },
+                        sistemas: {
+                            abs_esp: el.querySelector('.v-abs-esp').value,
+                            luces: el.querySelector('.v-luces').value
+                        }
+                    })),
+                    evidencia: {
+                        fotos: photos,
+                        croquis: document.getElementById('croquis').toDataURL("image/png")
+                    },
+                    timestamp: serverTimestamp()
+                };
+
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'informes_periciales');
+                await addDoc(colRef, reportData);
+                alert("✅ Informe pericial sincronizado con éxito.");
+            } catch (err) {
+                alert("❌ Error: " + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        };
+    </script>
+
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; }
+        body { background: #f1f5f9; font-family: 'Inter', sans-serif; padding-bottom: 120px; color: #1e293b; }
+        .card { background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); position: relative; }
+        .section-header { display: flex; align-items: center; gap: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #3b82f6; padding-bottom: 0.75rem; margin-bottom: 1.25rem; font-size: 0.875rem; }
+        .label-tech { font-size: 0.65rem; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 0.25rem; display: block; }
+        .input-tech { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.4rem; padding: 0.5rem; font-size: 0.85rem; background: #fff; }
+        .entry-box { border-left: 4px solid var(--accent); background: #f8fafc; padding: 1rem; border-radius: 0.5rem; position: relative; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
+        .btn-clear { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; cursor: pointer; transition: color 0.2s; }
+        .btn-clear:hover { color: #ef4444; }
+        canvas { background: #fff; touch-action: none; border: 2px solid #cbd5e1; border-radius: 0.75rem; cursor: crosshair; }
+        .tool-btn { padding: 0.5rem; border-radius: 0.4rem; border: 1px solid #cbd5e1; background: #fff; color: #475569; transition: all 0.2s; }
+        .tool-btn.active { background: #2563eb; color: #fff; border-color: #1e40af; }
+        @media print { .fixed, button, .btn-clear, .label-tech + .relative > button { display: none !important; } .card { box-shadow: none; border: 1px solid #000; } body { padding: 0; background: #fff; } }
+    </style>
+</head>
+<body class="p-4 max-w-5xl mx-auto">
+
+    <header class="bg-slate-900 text-white p-6 rounded-2xl mb-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <h1 class="text-2xl font-black uppercase tracking-tighter">Informe Técnico Pericial</h1>
+                <div id="db-status" class="text-[10px] bg-slate-700 px-2 py-1 rounded">Conectando...</div>
+            </div>
+            <p class="text-blue-400 font-bold">Manuel Pedro Martín Suazo · Investigador de Accidentes</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 w-full md:w-auto">
+            <input type="text" id="ref_judicial" placeholder="REF. JUDICIAL" class="bg-slate-800 border-none rounded p-2 text-sm font-mono text-blue-300">
+            <input type="date" id="fecha_siniestro" class="bg-slate-800 border-none rounded p-2 text-sm text-white">
+        </div>
+    </header>
+
+    <!-- LOCALIZACIÓN Y ENTORNO -->
+    <section class="card" id="sec-loc">
+        <span class="btn-clear" onclick="clearSection('sec-loc')">Limpiar Sección</span>
+        <h2 class="section-header"><i class="fas fa-map-marker-alt text-blue-500"></i> Geolocalización e Inspección de Entorno</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+                <label class="label-tech">Lugar / Dirección Descriptiva</label>
+                <div class="relative">
+                    <input type="text" id="lugar_siniestro" class="input-tech pr-10" placeholder="Dirección del siniestro">
+                    <button onclick="getLocation()" class="absolute right-2 top-1.5 text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-location-arrow"></i>
+                    </button>
+                </div>
+            </div>
+            <div><label class="label-tech">Coordenadas GPS</label><input type="text" id="gps_coords" class="input-tech font-mono text-xs bg-slate-50" readonly></div>
+            <div><label class="label-tech">Hora Siniestro</label><input type="time" id="hora_siniestro" class="input-tech"></div>
+            <div><label class="label-tech">Fase del Día</label><select id="fase_dia" class="input-tech"><option>Día / Pleno Sol</option><option>Ocaso / Crepúsculo</option><option>Noche (Iluminada)</option><option>Noche (Sin luz)</option></select></div>
+            <div><label class="label-tech">Alumbrado Público</label><select id="alumbrado" class="input-tech"><option>Funciona correctamente</option><option>Apagado / Defectuoso</option><option>Inexistente</option></select></div>
+            <div class="md:col-span-1"><label class="label-tech">Obstáculos Visuales</label><input type="text" id="obstaculos" class="input-tech" placeholder="Mobiliario, vegetación, etc."></div>
+            <div class="md:col-span-2"><label class="label-tech">Autoridad que instruye</label><input type="text" id="autoridad" class="input-tech"></div>
+        </div>
+    </section>
+
+    <!-- PERSONAS -->
+    <section class="card" id="sec-per">
+        <span class="btn-clear" onclick="clearContainer('container-personas')">Limpiar Lista</span>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="section-header mb-0"><i class="fas fa-user-shield text-blue-500"></i> Personas e Involucrados</h2>
+            <button onclick="addPersona()" class="bg-blue-600 text-white px-4 py-1 rounded-lg text-xs font-bold">+ Añadir</button>
+        </div>
+        <div id="container-personas"></div>
+    </section>
+
+    <!-- VEHÍCULOS E INSPECCIÓN TÉCNICA -->
+    <section class="card" id="sec-veh">
+        <span class="btn-clear" onclick="clearContainer('container-vehiculos')">Limpiar Lista</span>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="section-header mb-0"><i class="fas fa-car-crash text-blue-500"></i> Unidades de Tráfico e Inspección Mecánica</h2>
+            <button onclick="addVehiculo()" class="bg-amber-600 text-white px-4 py-1 rounded-lg text-xs font-bold">+ Añadir</button>
+        </div>
+        <div id="container-vehiculos"></div>
+    </section>
+
+    <!-- INGENIERÍA DE VÍA -->
+    <section class="card" id="sec-via">
+        <span class="btn-clear" onclick="clearSection('sec-via')">Limpiar Sección</span>
+        <h2 class="section-header"><i class="fas fa-road text-blue-500"></i> Ingeniería de la Vía</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div><label class="label-tech">Configuración</label><select id="tipo_via" class="input-tech"><option>Recta</option><option>Curva suave</option><option>Curva cerrada</option><option>Intersección</option></select></div>
+            <div><label class="label-tech">Firme</label><select id="tipo_firme" class="input-tech"><option>Asfalto</option><option>Hormigón</option><option>Adoquín</option><option>Tierra</option></select></div>
+            <div><label class="label-tech">Estado Firme</label><select id="estado_firme" class="input-tech"><option>Seco / Limpio</option><option>Húmedo</option><option>Mojado</option><option>Aceite/Derrame</option></select></div>
+            <div><label class="label-tech">Carriles</label><input type="number" id="num_carriles" class="input-tech" value="2"></div>
+            <div><label class="label-tech">Ancho Carril (m)</label><input type="number" id="anchura_via" step="0.1" class="input-tech" placeholder="3.5"></div>
+            <div><label class="label-tech">Peralte (%)</label><input type="number" id="peralte" step="0.1" class="input-tech" placeholder="0"></div>
+            <div><label class="label-tech">Clima</label><select id="clima" class="input-tech"><option>Despejado</option><option>Lluvia</option><option>Niebla</option><option>Viento</option></select></div>
+        </div>
+    </section>
+
+    <!-- SEÑALIZACIÓN (CATÁLOGO DGT) -->
+    <section class="card" id="sec-sen">
+        <span class="btn-clear" onclick="clearSection('sec-sen')">Limpiar Sección</span>
+        <h2 class="section-header"><i class="fas fa-traffic-light text-blue-500"></i> Señalización y Seguridad</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="label-tech">Categoría de Señal Vertical</label>
+                <select id="cat_dgt" class="input-tech" onchange="updateSignalCatalog()">
+                    <option value="">-- Seleccionar Categoría --</option>
+                    <option value="P">P: Advertencia de Peligro</option>
+                    <option value="R">R: Reglamentación</option>
+                    <option value="S">S: Indicación</option>
+                </select>
+            </div>
+            <div>
+                <label class="label-tech">Código/Nombre Específico</label>
+                <select id="cod_dgt" class="input-tech">
+                    <option value="">-- Primero elija categoría --</option>
+                </select>
+            </div>
+            <div><label class="label-tech">Marcas Horizontales</label><textarea id="sen_horizontal" class="input-tech h-16" placeholder="Líneas continuas, cebreados, flechas..."></textarea></div>
+            <div><label class="label-tech">Visibilidad y Conservación</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="visibilidad_sen" class="input-tech"><option>Visible</option><option>Obstruida</option></select>
+                    <select id="conservacion_sen" class="input-tech"><option>Correcta</option><option>Deficiente</option></select>
+                </div>
+            </div>
+            <div class="md:col-span-2 flex items-center gap-4 bg-slate-50 p-3 rounded border">
+                <input type="checkbox" id="semaforos" class="w-5 h-5 accent-blue-600">
+                <label class="text-xs font-bold uppercase text-slate-600">Intersección regulada por semáforos</label>
+            </div>
+        </div>
+    </section>
+
+    <!-- DINÁMICA Y FORMULACIÓN -->
+    <section class="card border-l-8 border-l-blue-900" id="sec-din">
+        <span class="btn-clear" onclick="clearSection('sec-din')">Limpiar Cálculos</span>
+        <h2 class="section-header"><i class="fas fa-calculator text-blue-500"></i> Dinámica y Formulación</h2>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 items-end mb-6">
+            <div><label class="label-tech">Rozamiento (μ)</label><input type="number" id="mu_calc" step="0.01" class="input-tech" value="0.70" oninput="calculateSpeed()"></div>
+            <div><label class="label-tech">Huella (m)</label><input type="number" id="long_huella" step="0.1" class="input-tech" value="0" oninput="calculateSpeed()"></div>
+            <div><label class="label-tech">Pendiente (%)</label><input type="number" id="pendiente" step="0.1" class="input-tech" placeholder="0" oninput="calculateSpeed()"></div>
+            <div><label class="label-tech">Radio (R)</label><input type="number" id="radio_curva" step="0.1" class="input-tech" placeholder="m" oninput="calculateSpeed()"></div>
+            <div><label class="label-tech">EES (km/h)</label><input type="number" id="ees_deformacion" step="1" class="input-tech" placeholder="EES" oninput="calculateSpeed()"></div>
+        </div>
+        <div class="bg-slate-900 p-6 rounded-2xl text-center shadow-inner">
+            <span class="text-[10px] text-blue-400 font-black uppercase tracking-widest block mb-1">Velocidad Resultante Consolidada</span>
+            <div id="velocidad_box" class="text-5xl font-black text-white">--- km/h</div>
+            <p class="text-[9px] text-slate-500 mt-2 font-mono italic">Fórmula: V = √((√(2gd(μ±i)))² + (√(gRμ))² + EES²)</p>
+        </div>
+    </section>
+
+    <!-- CROQUIS TÉCNICO MEJORADO -->
+    <section class="card" id="sec-cro">
+        <span class="btn-clear" onclick="clearCanvas()">Limpiar Lienzo</span>
+        <h2 class="section-header"><i class="fas fa-edit text-blue-500"></i> Croquis Técnico de Campo</h2>
+        
+        <div class="flex flex-wrap items-center gap-3 mb-4 bg-slate-50 p-2 rounded-lg border">
+            <div class="flex gap-1 border-r pr-3">
+                <button onclick="setTool('pen')" id="tool-pen" class="tool-btn active"><i class="fas fa-pencil-alt"></i></button>
+                <button onclick="setTool('line')" id="tool-line" class="tool-btn"><i class="fas fa-slash"></i></button>
+                <button onclick="setTool('rect')" id="tool-rect" class="tool-btn"><i class="fas fa-vector-square"></i></button>
+            </div>
+            <div class="flex gap-1 border-r pr-3">
+                <button onclick="setBrush('#0f172a')" class="w-6 h-6 rounded-full bg-slate-900 border border-slate-300"></button>
+                <button onclick="setBrush('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 border border-slate-300"></button>
+                <button onclick="setBrush('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 border border-slate-300"></button>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-[10px] font-bold text-slate-500">GROSOR</label>
+                <input type="range" min="1" max="10" value="3" onchange="ctx.lineWidth = this.value" class="w-20">
+            </div>
+        </div>
+
+        <canvas id="croquis" class="w-full h-80 mb-2"></canvas>
+    </section>
+
+    <!-- FOTOS -->
+    <section class="card">
+        <h2 class="section-header"><i class="fas fa-camera text-blue-500"></i> Registro Fotográfico</h2>
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="relative w-full md:w-48 h-32 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center bg-slate-50 cursor-pointer">
+                <i class="fas fa-plus-circle text-2xl text-slate-400"></i>
+                <input type="file" accept="image/*" capture="camera" class="absolute inset-0 opacity-0 cursor-pointer" onchange="addPhoto(this)">
+            </div>
+            <div id="gallery" class="flex gap-4 overflow-x-auto pb-2 flex-1 scrollbar-hide"></div>
+        </div>
+    </section>
+
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/95 border-t flex gap-4 z-50 shadow-2xl">
+        <button id="saveBtn" onclick="saveToFirestore()" class="flex-1 bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-blue-700 uppercase tracking-wider">
+            <i class="fas fa-cloud-upload-alt mr-2"></i> Guardar Informe
+        </button>
+        <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl">
+            <i class="fas fa-print"></i>
+        </button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('croquis');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let startX, startY;
+        let snapshot;
+        let tool = 'pen';
+        let photos = [];
+        let currentGeo = "No detectado";
+
+        const CATALOGO_SEÑALES = {
+            P: ["P-1: Intersección con prioridad", "P-4: Intersección con prioridad a la derecha", "P-13: Curva peligrosa a la derecha", "P-14: Curva peligrosa a la izquierda", "P-17: Estrechamiento de calzada", "P-20: Peatones", "P-21: Niños"],
+            R: ["R-1: Ceda el paso", "R-2: STOP", "R-101: Entrada prohibida", "R-301: Velocidad máxima", "R-400: Sentido obligatorio", "R-308: Estacionamiento prohibido"],
+            S: ["S-1: Autopista", "S-3: Vía para automóviles", "S-11: Calzada de sentido único", "S-13: Situación de paso para peatones", "S-17: Estacionamiento", "S-23: Hospital"]
+        };
+
+        function setTool(t) {
+            tool = t;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tool-${t}`).classList.add('active');
+        }
+
+        function updateSignalCatalog() {
+            const cat = document.getElementById('cat_dgt').value;
+            const select = document.getElementById('cod_dgt');
+            select.innerHTML = '<option value="">-- Seleccionar Señal --</option>';
+            if (CATALOGO_SEÑALES[cat]) {
+                CATALOGO_SEÑALES[cat].forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.innerText = s;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function clearSection(id) {
+            const inputs = document.querySelectorAll(`#${id} input, #${id} select, #${id} textarea`);
+            inputs.forEach(i => {
+                if (i.type === 'checkbox') i.checked = false;
+                else i.value = '';
+            });
+            if (id === 'sec-din') {
+                document.getElementById('mu_calc').value = "0.70";
+                calculateSpeed();
+            }
+        }
+
+        function clearContainer(id) {
+            document.getElementById(id).innerHTML = '';
+        }
+
+        function initCanvas() {
+            const parent = canvas.parentElement;
+            canvas.width = parent.offsetWidth - 32;
+            canvas.height = 320;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#0f172a';
+        }
+
+        function setBrush(color) { ctx.strokeStyle = color; }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startDrawing(e) {
+            drawing = true;
+            const p = getPos(e);
+            startX = p.x;
+            startY = p.y;
+            snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            if (tool === 'pen') {
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+            }
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const p = getPos(e);
+            if (tool === 'pen') {
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            } else {
+                ctx.putImageData(snapshot, 0, 0);
+                if (tool === 'line') {
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(p.x, p.y);
+                    ctx.stroke();
+                } else if (tool === 'rect') {
+                    ctx.strokeRect(startX, startY, p.x - startX, p.y - startY);
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', () => drawing = false);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+        
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        async function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lng = pos.coords.longitude.toFixed(6);
+                    currentGeo = `${lat}, ${lng}`;
+                    document.getElementById('gps_coords').value = currentGeo;
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+                        const data = await res.json();
+                        if (data.display_name) document.getElementById('lugar_siniestro').value = data.display_name;
+                    } catch (e) {}
+                });
+            }
+        }
+
+        function calculateSpeed() {
+            const mu = parseFloat(document.getElementById('mu_calc').value) || 0;
+            const d = parseFloat(document.getElementById('long_huella').value) || 0;
+            const r = parseFloat(document.getElementById('radio_curva').value) || 0;
+            const ees = parseFloat(document.getElementById('ees_deformacion').value) || 0;
+            const pct = (parseFloat(document.getElementById('pendiente').value) || 0) / 100;
+
+            const mu_eff = mu + pct;
+            let v_frenado = 0;
+            let v_centrifuga = 0;
+
+            if(d > 0 && mu_eff > 0) v_frenado = Math.sqrt(2 * 9.81 * d * mu_eff) * 3.6;
+            if(r > 0 && mu > 0) v_centrifuga = Math.sqrt(9.81 * r * mu) * 3.6;
+
+            let v_total = Math.sqrt(Math.pow(v_frenado, 2) + Math.pow(v_centrifuga, 2) + Math.pow(ees, 2));
+            document.getElementById('velocidad_box').innerText = v_total > 0 ? `${v_total.toFixed(1)} km/h` : "--- km/h";
+        }
+
+        function addPersona() {
+            const div = document.createElement('div');
+            div.className = 'persona-entry entry-box';
+            div.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-300 hover:text-red-500"><i class="fas fa-times-circle"></i></button>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div><label class="label-tech">Nombre</label><input type="text" class="p-nombre input-tech"></div>
+                    <div><label class="label-tech">DNI</label><input type="text" class="p-dni input-tech"></div>
+                    <div><label class="label-tech">Rol</label><select class="p-rol input-tech"><option>Conductor</option><option>Peatón</option><option>Testigo</option></select></div>
+                </div>
+            `;
+            document.getElementById('container-personas').appendChild(div);
+        }
+
+        function addVehiculo() {
+            const div = document.createElement('div');
+            div.className = 'vehiculo-entry entry-box';
+            div.style.borderLeftColor = '#d97706';
+            div.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-300 hover:text-red-500"><i class="fas fa-times-circle"></i></button>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div><label class="label-tech">Matrícula</label><input type="text" class="v-matricula input-tech uppercase font-bold"></div>
+                    <div><label class="label-tech">Código DOT</label><input type="text" class="v-n-dot input-tech" placeholder="SSAA"></div>
+                    <div><label class="label-tech">Dibujo (mm)</label><input type="number" step="0.1" class="v-n-dibujo input-tech"></div>
+                    <div><label class="label-tech">ABS / ESP</label><select class="v-abs-esp input-tech"><option>Funcionando</option><option>Anulado/Fallo</option><option>No dispone</option></select></div>
+                    <div><label class="label-tech">Luces</label><select class="v-luces input-tech"><option>Correctas</option><option>Fundidas/Daño</option><option>Desconectadas</option></select></div>
+                    <div><label class="label-tech">Dirección</label><select class="v-neumaticos input-tech"><option>Alineada</option><option>Desviada/Impacto</option></select></div>
+                </div>
+            `;
+            document.getElementById('container-vehiculos').appendChild(div);
+        }
+
+        function addPhoto(input) {
+            if(input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const tag = prompt("Descripción de la foto:") || "Evidencia";
+                    photos.push({ data: e.target.result, tag, timestamp: new Date().toLocaleString(), gps: currentGeo });
+                    renderGallery();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function renderGallery() {
+            document.getElementById('gallery').innerHTML = photos.map((p, i) => `
+                <div class="min-w-[150px] h-[150px] relative rounded-xl overflow-hidden shadow group border">
+                    <img src="${p.data}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 bg-black/75 text-white text-[7px] w-full p-2">
+                        <div class="font-bold text-blue-300 uppercase">${p.tag}</div>
+                        <div>${p.timestamp}</div>
+                    </div>
+                    <button onclick="removePhoto(${i})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
+
+        window.removePhoto = (i) => { photos.splice(i, 1); renderGallery(); };
+
+        window.onload = () => {
+            initCanvas();
+            getLocation();
+            document.getElementById('fecha_siniestro').value = new Date().toISOString().split('T')[0];
+            addPersona(); addVehiculo();
+        };
+        window.onresize = initCanvas;
+    </script>
+</body>
+</html>
