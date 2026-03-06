@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Informe Pericial Avanzado - Manuel Pedro Martín Suazo</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root { --primary: #1e3a8a; --secondary: #3b82f6; --accent: #f59e0b; }
+        body { background-color: #f3f4f6; font-family: ui-sans-serif, system-ui, sans-serif; padding-bottom: 100px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 24px; padding: 24px; border-top: 4px solid var(--primary); }
+        .input-group label { display: block; font-size: 0.7rem; font-weight: 800; color: #374151; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.025em; }
+        .input-field { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: var(--secondary); ring: 2px rgba(59, 130, 246, 0.2); }
+        .btn-action { color: white; padding: 12px 20px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: none; }
+        .section-title { font-size: 1.1rem; font-weight: 800; color: var(--primary); border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .subsection-header { font-size: 0.8rem; font-weight: 700; color: #4b5563; text-transform: uppercase; margin: 15px 0 10px 0; background: #f8fafc; padding: 5px 10px; border-radius: 4px; border-left: 3px solid var(--accent); }
+        .grid-canvas { background-color: #fff; background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px; border: 2px solid #9ca3af; touch-action: none; }
+        .entry-box { border-left: 5px solid var(--primary); background: #f9fafb; padding: 15px; border-radius: 8px; position: relative; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .signal-tag { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; margin: 2px; border: 1px solid #bae6fd; }
+        .photo-preview { position: relative; width: 100%; aspect-ratio: 4/3; border-radius: 8px; overflow: hidden; border: 2px solid #e5e7eb; }
+        .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header id="header-informe" class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-lg border-b-4 border-blue-900">
+        <div class="logo-container mb-4 md:mb-0">
+            <img src="https://via.placeholder.com/100x100?text=ASPEJURE" alt="Logo ASPEJURE" class="h-20">
+        </div>
+        <div class="text-center md:text-right">
+            <h1 class="text-xl md:text-2xl font-black text-blue-900 uppercase leading-tight">Informe Pericial Técnico-Vial</h1>
+            <p class="text-gray-800 font-bold text-lg">Manuel Pedro Martín Suazo</p>
+            <p class="text-blue-700 text-xs font-extrabold">Perito Judicial nº 03478 | Especialista en Reconstrucción de Siniestros</p>
+            <p class="text-[10px] text-gray-500 font-mono">C/ Ingeniería Vial 12, 28001 Madrid | +34 689 58 63 40</p>
+        </div>
+    </header>
+
+    <form id="pericialForm">
+        <!-- 1. DATOS GENERALES -->
+        <section class="card">
+            <h2 class="section-title"><i class="fas fa-file-alt"></i> 1. Identificación y Localización</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="input-group"><label>Referencia Judicial/Exp</label><input type="text" id="ref_judicial" class="input-field"></div>
+                <div class="input-group"><label>Fecha Siniestro</label><input type="date" id="fecha_siniestro" class="input-field"></div>
+                <div class="input-group"><label>Hora (Aprox)</label><input type="time" id="hora_siniestro" class="input-field"></div>
+                <div class="input-group md:col-span-2"><label>Localización Exacta (Vía, PK, Intersección)</label><input type="text" id="via_manual" class="input-field"></div>
+                <div class="input-group"><label>Coordenadas GPS</label>
+                    <div class="flex gap-1">
+                        <input type="text" id="gps-coords" class="input-field text-[10px]" readonly>
+                        <button type="button" onclick="getLocation()" class="bg-green-600 text-white p-2 rounded"><i class="fas fa-location-arrow"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. PERSONAS -->
+        <section class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="section-title mb-0"><i class="fas fa-user-friends"></i> 2. Involucrados</h2>
+                <button type="button" onclick="addPerson()" class="btn-action bg-blue-600 text-xs py-1 px-3"><i class="fas fa-plus"></i> Añadir Persona</button>
+            </div>
+            <div id="persons-container"></div>
+        </section>
+
+        <!-- 3. VEHÍCULOS (ACTUALIZADO CON DATOS COMPLETOS) -->
+        <section class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="section-title mb-0"><i class="fas fa-car-crash"></i> 3. Unidades de Tráfico (Vehículos)</h2>
+                <button type="button" onclick="addVehicle()" class="btn-action bg-blue-600 text-xs py-1 px-3"><i class="fas fa-plus"></i> Añadir Vehículo</button>
+            </div>
+            <div id="vehicles-container"></div>
+        </section>
+
+        <!-- 4. ESTUDIO DE LA VÍA, SEÑALIZACIÓN Y VELOCIDAD (MANTENIDO) -->
+        <section class="card">
+            <h2 class="section-title"><i class="fas fa-road"></i> 4. Características de la Vía y Señalización</h2>
+            
+            <div class="subsection-header">A. Geometría y Estructura de la Calzada</div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="input-group">
+                    <label>Clasificación Vía</label>
+                    <select id="clase_via" class="input-field">
+                        <option>Autopista/Autovía</option><option>Vía Rápida</option><option>Carretera Convencional</option><option>Vía Urbana Principal</option><option>Calle Residencial</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Alineación</label>
+                    <select id="alineacion" class="input-field">
+                        <option>Recta</option><option>Curva Radio Amplio</option><option>Curva Radio Reducido</option><option>Cambio de Rasante</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Pendiente Nom. (%)</label>
+                    <input type="number" id="pendiente_nom" class="input-field" placeholder="Ej: 5" oninput="calculateSpeed()">
+                </div>
+                <div class="input-group">
+                    <label>Sentido Pendiente</label>
+                    <select id="sentido_pendiente" class="input-field" onchange="calculateSpeed()">
+                        <option value="1">Rampa (Ascendente +)</option>
+                        <option value="-1">Pendiente (Descendente -)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="subsection-header">B. Estado de Superficie y Adherencia</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="input-group">
+                    <label>Tipo de Pavimento</label>
+                    <select id="tipo_pavimento" class="input-field">
+                        <option>Asfalto</option><option>Hormigón</option><option>Adoquinado</option><option>Tierra</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Conservación</label>
+                    <select id="conservacion_firme" class="input-field">
+                        <option>Excelente</option><option>Bueno</option><option>Regular</option><option>Malo</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Condición Ambiental</label>
+                    <select id="superficie_cond" class="input-field" onchange="updateMu()">
+                        <option value="0.80">Seco y Limpio (0.80)</option>
+                        <option value="0.60">Húmedo/Mojado (0.60)</option>
+                        <option value="0.40">Barro/Gravilla (0.40)</option>
+                        <option value="0.20">Nieve/Hielo (0.20)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="subsection-header">C. Señalización y Catálogo DGT</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <div class="input-group mb-2">
+                        <label>Añadir Señal del Catálogo DGT</label>
+                        <select id="dgt_catalog" class="input-field" onchange="addSignalTag()">
+                            <option value="">-- Seleccionar Categoría --</option>
+                            <optgroup label="ADVERTENCIA DE PELIGRO (P)">
+                                <option value="P-1">P-1: Intersección con prioridad</option>
+                                <option value="P-2">P-2: Intersección con prioridad derecha</option>
+                                <option value="P-20">P-20: Paso para peatones</option>
+                            </optgroup>
+                            <optgroup label="REGLAMENTACIÓN: PRIORIDAD (R)">
+                                <option value="R-1">R-1: Ceda el paso</option>
+                                <option value="R-2">R-2: STOP</option>
+                            </optgroup>
+                            <optgroup label="REGLAMENTACIÓN: VELOCIDAD (R-301)">
+                                <option value="R-301-30">R-301 (30 km/h)</option>
+                                <option value="R-301-50">R-301 (50 km/h)</option>
+                                <option value="R-301-90">R-301 (90 km/h)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div id="signal-tags-container" class="min-h-[40px] p-2 border rounded-lg bg-gray-50 mb-2"></div>
+                    <textarea id="sen_vertical_obs" class="input-field h-16" placeholder="Estado de la señalización vertical..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Marcas Viales</label>
+                    <textarea id="sen_horizontal" class="input-field h-full" placeholder="Estado de la pintura, líneas continuas, flechas..."></textarea>
+                </div>
+            </div>
+
+            <div class="subsection-header">D. Análisis Físico: Pendiente y Velocidad</div>
+            <div class="bg-slate-50 p-6 rounded-xl border-2 border-slate-200">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-6">
+                    <div class="input-group">
+                        <label>Coef. Adherencia (μ)</label>
+                        <input type="number" id="mu_calc" step="0.01" class="input-field font-bold text-blue-800" value="0.70" oninput="calculateSpeed()">
+                    </div>
+                    <div class="input-group">
+                        <label>Huella frenada (m)</label>
+                        <input type="number" id="long_huella" step="0.1" class="input-field" oninput="calculateSpeed()">
+                    </div>
+                    <div class="input-group">
+                        <label>Eficiencia (η)</label>
+                        <input type="number" id="eficiencia_frenado" step="0.01" class="input-field" value="1.00" oninput="calculateSpeed()">
+                    </div>
+                    <div class="input-group">
+                        <label>Pendiente Real (i)</label>
+                        <input type="number" id="pendiente_decimal" class="input-field bg-gray-100" readonly value="0.00">
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row gap-6 items-center justify-between bg-white p-4 rounded-lg shadow-inner">
+                    <div class="text-[10px] font-mono text-gray-500 italic">
+                        <p class="font-bold text-slate-700">Fórmula Técnica:</p>
+                        <p class="text-xs text-blue-900 font-bold">V = √[ 2 · g · d · (μ · η ± i) ]</p>
+                    </div>
+                    <div class="w-full md:w-64">
+                        <label class="block text-[10px] font-black text-center text-slate-500 uppercase">Velocidad Reconstruida</label>
+                        <div id="velocidad_box" class="bg-blue-900 text-white text-center py-4 rounded-xl text-3xl font-black shadow-lg">--- km/h</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. CROQUIS Y TOMA DE FOTOGRAFÍAS (RESTABLECIDO) -->
+        <section class="card">
+            <h2 class="section-title"><i class="fas fa-camera"></i> 5. Evidencia Gráfica y Reportaje Fotográfico</h2>
+            
+            <div class="subsection-header">A. Croquis de Escena</div>
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-[10px] font-bold uppercase text-gray-500">Dibujo técnico / Esquema de colisión</label>
+                    <button type="button" onclick="clearCanvas()" class="text-red-600 text-[10px] font-bold underline">BORRAR LIENZO</button>
+                </div>
+                <canvas id="croquis" class="grid-canvas w-full h-80 rounded-lg shadow-inner"></canvas>
+            </div>
+
+            <div class="subsection-header">B. Fotografías de Campo</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer">
+                    <i class="fas fa-camera text-4xl text-gray-400 mb-2"></i>
+                    <span class="text-xs font-bold text-gray-500 uppercase">Capturar Foto Siniestro</span>
+                    <input type="file" accept="image/*" capture="camera" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImage(this, 'general')">
+                </div>
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors relative cursor-pointer">
+                    <i class="fas fa-file-invoice text-4xl text-gray-400 mb-2"></i>
+                    <span class="text-xs font-bold text-gray-500 uppercase">Foto Documento / Vía</span>
+                    <input type="file" accept="image/*" capture="camera" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImage(this, 'vía')">
+                </div>
+            </div>
+            
+            <div id="image-gallery" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-6">
+                <!-- Previsualizaciones de fotos -->
+            </div>
+        </section>
+
+        <!-- BOTONES FLOTANTES -->
+        <div class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t p-4 flex gap-4 z-50 shadow-2xl">
+            <button type="button" onclick="saveToLocal()" class="btn-action bg-slate-700 flex-1"><i class="fas fa-hdd"></i> Guardar Borrador</button>
+            <button type="button" onclick="previewPDF()" class="btn-action bg-blue-900 flex-1 shadow-lg"><i class="fas fa-file-pdf"></i> Generar Informe Técnico</button>
+        </div>
+    </form>
+
+    <!-- MODAL PDF -->
+    <div id="pdfModal" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col">
+        <div class="flex justify-between items-center bg-white p-4 shadow-md">
+            <h3 class="font-black text-blue-900 uppercase text-sm tracking-widest">Previsualización del Dictamen</h3>
+            <div class="flex gap-2">
+                <button onclick="downloadPDF()" class="bg-green-600 text-white px-4 py-2 rounded text-[10px] font-black uppercase">Descargar PDF</button>
+                <button onclick="closeModal()" class="bg-red-600 text-white px-4 py-2 rounded text-[10px] font-black uppercase">Cerrar</button>
+            </div>
+        </div>
+        <div id="pdf-content" class="bg-white overflow-auto flex-1 p-8 font-serif text-[12px] max-w-4xl mx-auto shadow-2xl my-4"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('croquis');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let selectedSignals = [];
+        let photos = [];
+
+        function initCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000';
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', drawLine);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); drawLine(e.touches[0]); });
+        canvas.addEventListener('touchend', endDraw);
+
+        function startDraw(e) { drawing = true; drawLine(e); }
+        function endDraw() { drawing = false; ctx.beginPath(); }
+        function drawLine(e) {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.pageX) - rect.left;
+            const y = (e.clientY || e.pageY) - rect.top;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+        function addPerson() {
+            const id = Date.now();
+            document.getElementById('persons-container').insertAdjacentHTML('beforeend', `
+                <div class="entry-box" id="p-${id}">
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-400 hover:text-red-600"><i class="fas fa-times-circle"></i></button>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="input-group md:col-span-2"><label>Nombre Completo / Razón Social</label><input type="text" class="input-field"></div>
+                        <div class="input-group"><label>DNI/CIF</label><input type="text" class="input-field uppercase"></div>
+                        <div class="input-group"><label>Calidad</label><select class="input-field"><option>Conductor</option><option>Titular</option><option>Peatón</option><option>Testigo</option></select></div>
+                        <div class="input-group"><label>Teléfono</label><input type="tel" class="input-field"></div>
+                        <div class="input-group md:col-span-2"><label>Domicilio</label><input type="text" class="input-field"></div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function addVehicle() {
+            const id = Date.now();
+            document.getElementById('vehicles-container').insertAdjacentHTML('beforeend', `
+                <div class="entry-box border-l-orange-500" id="v-${id}">
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-400"><i class="fas fa-trash"></i></button>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="input-group"><label>Matrícula</label><input type="text" class="input-field uppercase font-bold" placeholder="0000XXX"></div>
+                        <div class="input-group"><label>Marca/Modelo</label><input type="text" class="input-field"></div>
+                        <div class="input-group"><label>Nº Bastidor (VIN)</label><input type="text" class="input-field uppercase"></div>
+                        <div class="input-group"><label>Tipo Vehículo</label><select class="input-field"><option>Turismo</option><option>Motocicleta</option><option>Furgoneta</option><option>Camión</option><option>Autobús</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="input-group"><label>Tara (kg)</label><input type="number" class="input-field"></div>
+                        <div class="input-group"><label>M.M.A. (kg)</label><input type="number" class="input-field"></div>
+                        <div class="input-group"><label>Neumáticos (Estado %)</label><input type="number" class="input-field" placeholder="100"></div>
+                        <div class="input-group"><label>ITV Vigente</label><select class="input-field"><option>Sí</option><option>No</option><option>Caducada</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="input-group"><label>Sistemas Seguridad Activa/Pasiva</label>
+                            <div class="flex gap-2 text-[10px] mt-1 font-bold">
+                                <label><input type="checkbox"> ABS</label>
+                                <label><input type="checkbox"> ESP</label>
+                                <label><input type="checkbox"> Airbag Act.</label>
+                            </div>
+                        </div>
+                        <div class="input-group"><label>Descripción de Daños / Deformaciones</label><textarea class="input-field h-12" placeholder="Punto de impacto, hundimientos..."></textarea></div>
+                    </div>
+                </div>
+            `);
+        }
+
+        function handleImage(input, type) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const id = Date.now();
+                photos.push({ id, src: e.target.result, type });
+                renderPhotos();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderPhotos() {
+            const gallery = document.getElementById('image-gallery');
+            gallery.innerHTML = photos.map(p => `
+                <div class="photo-preview group">
+                    <img src="${p.src}" alt="Evidencia">
+                    <div class="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] p-1 text-center uppercase font-bold">${p.type}</div>
+                    <button type="button" onclick="removePhoto(${p.id})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="fas fa-times text-[10px]"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function removePhoto(id) {
+            photos = photos.filter(p => p.id !== id);
+            renderPhotos();
+        }
+
+        function updateMu() {
+            document.getElementById('mu_calc').value = document.getElementById('superficie_cond').value;
+            calculateSpeed();
+        }
+
+        function calculateSpeed() {
+            const mu = parseFloat(document.getElementById('mu_calc').value) || 0;
+            const d = parseFloat(document.getElementById('long_huella').value) || 0;
+            const eta = parseFloat(document.getElementById('eficiencia_frenado').value) || 1;
+            const p_nom = parseFloat(document.getElementById('pendiente_nom').value) || 0;
+            const sentido = parseFloat(document.getElementById('sentido_pendiente').value) || 1;
+            
+            const i = (p_nom / 100) * sentido;
+            document.getElementById('pendiente_decimal').value = i.toFixed(3);
+
+            if(d > 0) {
+                const factorInterior = (mu * eta) + i;
+                if (factorInterior <= 0) {
+                    document.getElementById('velocidad_box').innerText = "ERROR FÍS.";
+                    return;
+                }
+                const v_ms = Math.sqrt(2 * 9.81 * d * factorInterior);
+                const kmh = (v_ms * 3.6).toFixed(1);
+                document.getElementById('velocidad_box').innerText = `${kmh} km/h`;
+            } else {
+                document.getElementById('velocidad_box').innerText = "--- km/h";
+            }
+        }
+
+        function addSignalTag() {
+            const select = document.getElementById('dgt_catalog');
+            if(!select.value || selectedSignals.includes(select.value)) return;
+            selectedSignals.push(select.value);
+            const container = document.getElementById('signal-tags-container');
+            container.innerHTML = selectedSignals.map(s => `<span class="signal-tag">${s} <i class="fas fa-times cursor-pointer" onclick="removeSignal('${s}')"></i></span>`).join('');
+            select.value = "";
+        }
+
+        function removeSignal(s) {
+            selectedSignals = selectedSignals.filter(item => item !== s);
+            addSignalTag(); // refrescar
+        }
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    document.getElementById('gps-coords').value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+                });
+            }
+        }
+
+        function previewPDF() {
+            const area = document.getElementById('pdf-content');
+            area.innerHTML = `
+                <div class="border-b-2 border-blue-900 pb-4 mb-6">
+                    <h1 class="text-xl font-black text-blue-900 uppercase">Dictamen Técnico de Reconstrucción Vial</h1>
+                    <p class="text-xs">Perito: Manuel Pedro Martín Suazo | Judicial 03478</p>
+                </div>
+                <section class="mb-6">
+                    <h2 class="font-bold border-b mb-2 uppercase text-blue-800">1. Identificación</h2>
+                    <p><b>Expediente:</b> ${document.getElementById('ref_judicial').value}</p>
+                    <p><b>Ubicación:</b> ${document.getElementById('via_manual').value}</p>
+                    <p><b>Coordenadas:</b> ${document.getElementById('gps-coords').value}</p>
+                </section>
+                <section class="mb-6">
+                    <h2 class="font-bold border-b mb-2 uppercase text-blue-800">2. Análisis de la Vía</h2>
+                    <p><b>Pendiente:</b> ${document.getElementById('pendiente_nom').value}% (${document.getElementById('sentido_pendiente').selectedOptions[0].text})</p>
+                    <p><b>Señales DGT:</b> ${selectedSignals.join(', ')}</p>
+                </section>
+                <section class="mb-6">
+                    <h2 class="font-bold border-b mb-2 uppercase text-blue-800">3. Reconstrucción Cinemática</h2>
+                    <div class="bg-gray-100 p-4 rounded text-center">
+                        <p class="font-bold">VELOCIDAD CALCULADA PRE-IMPACTO</p>
+                        <p class="text-4xl font-black text-blue-900">${document.getElementById('velocidad_box').innerText}</p>
+                    </div>
+                </section>
+                <section class="mb-6">
+                    <h2 class="font-bold border-b mb-2 uppercase text-blue-800">4. Croquis de Escena</h2>
+                    <img src="${canvas.toDataURL()}" class="w-full border p-2">
+                </section>
+                <section class="page-break">
+                    <h2 class="font-bold border-b mb-4 uppercase text-blue-800">5. Reportaje Fotográfico</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        ${photos.map(p => `<div class="border p-1"><img src="${p.src}" class="w-full h-auto"></div>`).join('')}
+                    </div>
+                </section>
+            `;
+            document.getElementById('pdfModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('pdfModal').classList.add('hidden'); }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const content = document.getElementById('pdf-content');
+            const canvasImg = await html2canvas(content, { scale: 2 });
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 190;
+            const imgHeight = (canvasImg.height * imgWidth) / canvasImg.width;
+            pdf.addImage(canvasImg.toDataURL('image/png'), 'PNG', 10, 10, imgWidth, imgHeight);
+            pdf.save(`informe_suazo_${document.getElementById('ref_judicial').value}.pdf`);
+        }
+
+        function saveToLocal() { alert("Borrador guardado localmente."); }
+
+        window.onload = () => {
+            initCanvas();
+            addPerson();
+            addVehicle();
+        };
+    </script>
+</body>
+</html>
